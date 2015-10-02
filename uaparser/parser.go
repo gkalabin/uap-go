@@ -3,7 +3,6 @@ package uaparser
 import (
 	"bytes"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"reflect"
 	"regexp"
@@ -11,7 +10,11 @@ import (
 	"strings"
 	"sync"
 	"unicode"
+
+	"gopkg.in/yaml.v2"
 )
+
+const familyUnknown = "Other"
 
 type Parser struct {
 	UserAgentPatterns []UserAgentPattern
@@ -135,51 +138,30 @@ func (parser *Parser) newFromBytes(data []byte) (*Parser, error) {
 }
 
 func (parser *Parser) ParseUserAgent(line string) *UserAgent {
-	ua := new(UserAgent)
-	found := false
-	for _, uaPattern := range parser.UserAgentPatterns {
-		uaPattern.Match(line, ua)
-		if len(ua.Family) > 0 {
-			found = true
-			break
+	for patternIdx := range parser.UserAgentPatterns {
+		if ok, ua := parser.UserAgentPatterns[patternIdx].Match(line); ok {
+			return ua
 		}
 	}
-	if !found {
-		ua.Family = "Other"
-	}
-	return ua
+	return newUnknownUserAgent()
 }
 
 func (parser *Parser) ParseOs(line string) *Os {
-	os := new(Os)
-	found := false
-	for _, osPattern := range parser.OsPatterns {
-		osPattern.Match(line, os)
-		if len(os.Family) > 0 {
-			found = true
-			break
+	for patternIdx := range parser.OsPatterns {
+		if ok, os := parser.OsPatterns[patternIdx].Match(line); ok {
+			return os
 		}
 	}
-	if !found {
-		os.Family = "Other"
-	}
-	return os
+	return newUnknownOs()
 }
 
 func (parser *Parser) ParseDevice(line string) *Device {
-	dvc := new(Device)
-	found := false
-	for _, dvcPattern := range parser.DevicePatterns {
-		dvcPattern.Match(line, dvc)
-		if len(dvc.Family) > 0 {
-			found = true
-			break
+	for patternIdx := range parser.DevicePatterns {
+		if ok, device := parser.DevicePatterns[patternIdx].Match(line); ok {
+			return device
 		}
 	}
-	if !found {
-		dvc.Family = "Other"
-	}
-	return dvc
+	return newUnknownDevice()
 }
 
 func (parser *Parser) Parse(line string) *Client {
