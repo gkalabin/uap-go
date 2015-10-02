@@ -17,12 +17,14 @@ import (
 const familyUnknown = "Other"
 
 type Parser struct {
+	DataFileVersion   string
 	UserAgentPatterns []UserAgentPattern
 	OsPatterns        []OsPattern
 	DevicePatterns    []DevicePattern
 }
 
 type Client struct {
+	ID        string // some synthetic string we can search by later
 	UserAgent *UserAgent
 	Os        *Os
 	Device    *Device
@@ -61,6 +63,18 @@ func New(regexFile string) (*Parser, error) {
 	}
 
 	return parser.newFromBytes(data)
+}
+
+func NewWithVersion(regexFile, fileVersion string) (*Parser, error) {
+	if strings.Contains(fileVersion, " ") {
+		return nil, fmt.Errorf("File version '%s' contains a space, which is used while constructing ID", fileVersion)
+	}
+	parser, err := New(regexFile)
+	if err != nil {
+		return nil, err
+	}
+	parser.DataFileVersion = fileVersion
+	return parser, nil
 }
 
 func NewFromBytes(regexBytes []byte) (*Parser, error) {
@@ -138,38 +152,119 @@ func (parser *Parser) newFromBytes(data []byte) (*Parser, error) {
 }
 
 func (parser *Parser) ParseUserAgent(line string) *UserAgent {
-	for patternIdx := range parser.UserAgentPatterns {
-		if ua, ok := parser.UserAgentPatterns[patternIdx].Match(line); ok {
-			return ua
-		}
-	}
-	return newUnknownUserAgent()
+	ua, _ := parser.doParseUserAgent(line)
+	return ua
 }
 
 func (parser *Parser) ParseOs(line string) *Os {
-	for patternIdx := range parser.OsPatterns {
-		if os, ok := parser.OsPatterns[patternIdx].Match(line); ok {
-			return os
-		}
-	}
-	return newUnknownOs()
+	os, _ := parser.doParseOs(line)
+	return os
 }
 
 func (parser *Parser) ParseDevice(line string) *Device {
-	for patternIdx := range parser.DevicePatterns {
-		if device, ok := parser.DevicePatterns[patternIdx].Match(line); ok {
-			return device
+	os, _ := parser.doParseDevice(line)
+	return os
+}
+
+func (parser *Parser) doParseUserAgent(line string) (ua *UserAgent, idx int) {
+	for patternIdx := range parser.UserAgentPatterns {
+		if ua, ok := parser.UserAgentPatterns[patternIdx].Match(line); ok {
+			return ua, idx
 		}
 	}
-	return newUnknownDevice()
+	return newUnknownUserAgent(), -1
+}
+
+func (parser *Parser) doParseOs(line string) (os *Os, idx int) {
+	for patternIdx := range parser.OsPatterns {
+		if os, ok := parser.OsPatterns[patternIdx].Match(line); ok {
+			return os, patternIdx
+		}
+	}
+	return newUnknownOs(), -1
+}
+
+func (parser *Parser) doParseDevice(line string) (device *Device, idx int) {
+	for patternIdx := range parser.DevicePatterns {
+		if device, ok := parser.DevicePatterns[patternIdx].Match(line); ok {
+			return device, idx
+		}
+	}
+	return newUnknownDevice(), -1
 }
 
 func (parser *Parser) Parse(line string) *Client {
-	cli := new(Client)
-	cli.UserAgent = parser.ParseUserAgent(line)
-	cli.Os = parser.ParseOs(line)
-	cli.Device = parser.ParseDevice(line)
-	return cli
+	ua, uaIdx := parser.doParseUserAgent(line)
+	os, osIdx := parser.doParseOs(line)
+	dev, devIdx := parser.doParseDevice(line)
+	return &Client{
+		ID:        fmt.Sprintf("%s %d %d %d", parser.DataFileVersion, uaIdx, osIdx, devIdx),
+		UserAgent: ua,
+		Os:        os,
+		Device:    dev,
+	}
+}
+
+func (parser *Parser) FindByID(id, line string) *Client {
+	idParts := strings.Split(id, " ")
+	if len(idParts) != 4 {
+		return nil
+	}
+	dataFileVersion := idParts[0]
+	if dataFileVersion != parser.DataFileVersion {
+		return nil
+	}
+	// restore ua
+	uaIdx, err := strconv.Atoi(idParts[1])
+	if err != nil || uaIdx < -1 || uaIdx >= len(parser.UserAgentPatterns) {
+		return nil
+	}
+	var ua *UserAgent
+	if uaIdx == -1 {
+		ua = newUnknownUserAgent()
+	} else {
+		matched, ok := parser.UserAgentPatterns[uaIdx].Match(line)
+		if !ok {
+			return nil
+		}
+		ua = matched
+	}
+	// restore os
+	osIdx, err := strconv.Atoi(idParts[2])
+	if err != nil || osIdx < -1 || osIdx >= len(parser.OsPatterns) {
+		return nil
+	}
+	var os *Os
+	if osIdx == -1 {
+		os = newUnknownOs()
+	} else {
+		matched, ok := parser.OsPatterns[osIdx].Match(line)
+		if !ok {
+			return nil
+		}
+		os = matched
+	}
+	// restore device
+	deviceIdx, err := strconv.Atoi(idParts[3])
+	if err != nil || deviceIdx < -1 || deviceIdx >= len(parser.DevicePatterns) {
+		return nil
+	}
+	var device *Device
+	if deviceIdx == -1 {
+		device = newUnknownDevice()
+	} else {
+		matched, ok := parser.DevicePatterns[deviceIdx].Match(line)
+		if !ok {
+			return nil
+		}
+		device = matched
+	}
+	return &Client{
+		ID:        id,
+		UserAgent: ua,
+		Os:        os,
+		Device:    device,
+	}
 }
 
 func singleMatchReplacement(replacement string, matches []string, idx int) string {
