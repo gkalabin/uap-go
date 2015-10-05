@@ -167,8 +167,8 @@ func (parser *Parser) ParseDevice(line string) *Device {
 }
 
 func (parser *Parser) doParseUserAgent(line string) (ua *UserAgent, idx int) {
-	for patternIdx := range parser.UserAgentPatterns {
-		if ua, ok := parser.UserAgentPatterns[patternIdx].Match(line); ok {
+	for idx = range parser.UserAgentPatterns {
+		if ua, ok := parser.UserAgentPatterns[idx].Match(line); ok {
 			return ua, idx
 		}
 	}
@@ -176,17 +176,17 @@ func (parser *Parser) doParseUserAgent(line string) (ua *UserAgent, idx int) {
 }
 
 func (parser *Parser) doParseOs(line string) (os *Os, idx int) {
-	for patternIdx := range parser.OsPatterns {
-		if os, ok := parser.OsPatterns[patternIdx].Match(line); ok {
-			return os, patternIdx
+	for idx = range parser.OsPatterns {
+		if os, ok := parser.OsPatterns[idx].Match(line); ok {
+			return os, idx
 		}
 	}
 	return newUnknownOs(), -1
 }
 
 func (parser *Parser) doParseDevice(line string) (device *Device, idx int) {
-	for patternIdx := range parser.DevicePatterns {
-		if device, ok := parser.DevicePatterns[patternIdx].Match(line); ok {
+	for idx = range parser.DevicePatterns {
+		if device, ok := parser.DevicePatterns[idx].Match(line); ok {
 			return device, idx
 		}
 	}
