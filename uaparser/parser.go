@@ -139,7 +139,7 @@ func (parser *Parser) newFromBytes(data []byte) (*Parser, error) {
 
 func (parser *Parser) ParseUserAgent(line string) *UserAgent {
 	for patternIdx := range parser.UserAgentPatterns {
-		if ok, ua := parser.UserAgentPatterns[patternIdx].Match(line); ok {
+		if ua, ok := parser.UserAgentPatterns[patternIdx].Match(line); ok {
 			return ua
 		}
 	}
@@ -148,7 +148,7 @@ func (parser *Parser) ParseUserAgent(line string) *UserAgent {
 
 func (parser *Parser) ParseOs(line string) *Os {
 	for patternIdx := range parser.OsPatterns {
-		if ok, os := parser.OsPatterns[patternIdx].Match(line); ok {
+		if os, ok := parser.OsPatterns[patternIdx].Match(line); ok {
 			return os
 		}
 	}
@@ -157,7 +157,7 @@ func (parser *Parser) ParseOs(line string) *Os {
 
 func (parser *Parser) ParseDevice(line string) *Device {
 	for patternIdx := range parser.DevicePatterns {
-		if ok, device := parser.DevicePatterns[patternIdx].Match(line); ok {
+		if device, ok := parser.DevicePatterns[patternIdx].Match(line); ok {
 			return device
 		}
 	}

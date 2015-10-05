@@ -22,10 +22,10 @@ type DevicePattern struct {
 	ModelReplacement  string
 }
 
-func (dvcPattern *DevicePattern) Match(line string) (ok bool, device *Device) {
+func (dvcPattern *DevicePattern) Match(line string) (device *Device, ok bool) {
 	matches := dvcPattern.Regexp.FindStringSubmatch(line)
 	if matches == nil {
-		return false, nil
+		return nil, false
 	}
 	device = &Device{}
 	groupCount := dvcPattern.Regexp.NumSubexp()
@@ -35,7 +35,7 @@ func (dvcPattern *DevicePattern) Match(line string) (ok bool, device *Device) {
 		device.Family = matches[1]
 	}
 	device.Family = strings.TrimSpace(device.Family)
-	return true, device
+	return device, true
 }
 
 func (dvc *Device) ToString() string {

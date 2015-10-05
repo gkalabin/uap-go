@@ -25,10 +25,10 @@ type OsPattern struct {
 	OsV3Replacement string
 }
 
-func (osPattern *OsPattern) Match(line string) (ok bool, os *Os) {
+func (osPattern *OsPattern) Match(line string) (os *Os, ok bool) {
 	matches := osPattern.Regexp.FindStringSubmatch(line)
 	if matches == nil {
-		return false, nil
+		return nil, false
 	}
 	groupCount := osPattern.Regexp.NumSubexp()
 	os = &Os{}
@@ -59,7 +59,7 @@ func (osPattern *OsPattern) Match(line string) (ok bool, os *Os) {
 	if groupCount >= 5 {
 		os.PatchMinor = matches[5]
 	}
-	return true, os
+	return os, true
 }
 
 func (os *Os) ToString() string {

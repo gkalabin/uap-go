@@ -23,10 +23,10 @@ type UserAgentPattern struct {
 	V2Replacement     string
 }
 
-func (uaPattern *UserAgentPattern) Match(line string) (ok bool, ua *UserAgent) {
+func (uaPattern *UserAgentPattern) Match(line string) (ua *UserAgent, ok bool) {
 	matches := uaPattern.Regexp.FindStringSubmatch(line)
 	if matches == nil {
-		return false, nil
+		return nil, false
 	}
 	groupCount := uaPattern.Regexp.NumSubexp()
 
@@ -51,7 +51,7 @@ func (uaPattern *UserAgentPattern) Match(line string) (ok bool, ua *UserAgent) {
 			ua.Patch = matches[4]
 		}
 	}
-	return true, ua
+	return ua, true
 }
 
 func (ua *UserAgent) ToString() string {
