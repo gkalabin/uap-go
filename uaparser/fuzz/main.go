@@ -4,7 +4,7 @@ import "github.com/gkalabin/uap-go/uaparser"
 
 const unknownFamily = "Other"
 
-var parser uaparser.Parser
+var parser *uaparser.Parser
 
 func init() {
 	loaded, err := uaparser.New("regexes.yaml")
